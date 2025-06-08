@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser Video Color Modifier</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        #container {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        video, canvas {
+            border: 1px solid #ccc;
+            background-color: black;
+            max-width: 48%; /* Adjust for responsiveness */
+            height: auto;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        input[type="file"] {
+            margin-bottom: 20px;
+        }
+        #status {
+            margin-top: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Browser Video Color Modifier</h1>
+
+    <input type="file" id="videoFileInput" accept="video/*">
+    <div id="container">
+        <div>
+            <h2>Original Video</h2>
+            <video id="inputVideo" controls muted></video>
+        </div>
+        <div>
+            <h2>Processed Output</h2>
+            <canvas id="outputCanvas"></canvas>
+        </div>
+    </div>
+
+    <button id="processButton" disabled>Process Video</button>
+    <button id="downloadButton" style="display: none;">Download Processed Video</button>
+    <div id="status">Please select a video.</div>
+
+    <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady()"></script>
+    <script src="script.js"></script>
+</body>
+</html>
