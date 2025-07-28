@@ -3,70 +3,206 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Browser Video Color Modifier</title>
+    <title>Video Frame Extractor</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        /* Custom styles to enhance the look and feel */
         body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
-            background-color: #f0f0f0;
+            font-family: 'Inter', sans-serif;
         }
-        #container {
-            display: flex;
-            gap: 20px;
-            margin-top: 20px;
-        }
-        video, canvas {
-            border: 1px solid #ccc;
-            background-color: black;
-            max-width: 48%; /* Adjust for responsiveness */
-            height: auto;
-        }
-        button {
-            padding: 10px 20px;
-            margin: 10px;
-            font-size: 16px;
+        /* Style for the file input button */
+        .file-input-button {
             cursor: pointer;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
+            transition: all 0.3s ease;
         }
-        button:hover {
-            background-color: #0056b3;
+        .file-input-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
-        input[type="file"] {
-            margin-bottom: 20px;
+        /* Canvas elements will be used for processing but not displayed directly */
+        canvas {
+            display: none;
         }
-        #status {
-            margin-top: 20px;
-            font-weight: bold;
-            color: #333;
+        /* Styling for the output frame images */
+        .frame-image {
+            border: 2px solid #e5e7eb; /* gray-200 */
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         }
     </style>
 </head>
-<body>
-    <h1>Browser Video Color Modifier</h1>
+<body class="bg-gray-50 text-gray-800 flex items-center justify-center min-h-screen p-4">
 
-    <input type="file" id="videoFileInput" accept="video/*">
-    <div id="container">
-        <div>
-            <h2>Original Video</h2>
-            <video id="inputVideo" controls muted></video>
+    <div class="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-10">
+        
+        <!-- Header Section -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Video Frame Extractor</h1>
+            <p class="mt-2 text-gray-600">Upload a video to extract the first and last frames.</p>
         </div>
-        <div>
-            <h2>Processed Output</h2>
-            <canvas id="outputCanvas"></canvas>
+
+        <!-- File Upload Section -->
+        <div class="mb-8 text-center">
+            <label for="video-upload" class="file-input-button inline-block bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:bg-indigo-700">
+                Choose a Video File
+            </label>
+            <input type="file" id="video-upload" class="hidden" accept="video/*">
+            <p id="file-name" class="mt-4 text-sm text-gray-500">No file selected.</p>
         </div>
+
+        <!-- Main Video Element (hidden, for processing) -->
+        <video id="main-video" controls class="hidden" preload="metadata" muted></video>
+
+        <!-- Canvases for Frame Grabbing (hidden) -->
+        <canvas id="first-frame-canvas"></canvas>
+        <canvas id="last-frame-canvas"></canvas>
+
+        <!-- Loading Spinner -->
+        <div id="loader" class="hidden text-center my-8">
+            <svg class="animate-spin h-8 w-8 text-indigo-600 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-2 text-gray-600">Processing video...</p>
+        </div>
+
+        <!-- Output Section -->
+        <div id="output-section" class="hidden grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- First Frame Output -->
+            <div id="first-frame-container" class="text-center">
+                <h2 class="text-xl font-semibold mb-4">First Frame</h2>
+                <img id="first-frame-image" class="w-full rounded-lg frame-image" alt="First frame of the video">
+                <a id="download-first" class="mt-4 inline-block bg-green-500 text-white font-semibold py-2 px-5 rounded-lg shadow-md hover:bg-green-600 transition-all" href="#" download="first_frame.png">Download First Frame</a>
+            </div>
+            <!-- Last Frame Output -->
+            <div id="last-frame-container" class="text-center">
+                <h2 class="text-xl font-semibold mb-4">Last Frame</h2>
+                <img id="last-frame-image" class="w-full rounded-lg frame-image" alt="Last frame of the video">
+                <a id="download-last" class="mt-4 inline-block bg-green-500 text-white font-semibold py-2 px-5 rounded-lg shadow-md hover:bg-green-600 transition-all" href="#" download="last_frame.png">Download Last Frame</a>
+            </div>
+        </div>
+        
+        <!-- Error Message Box -->
+        <div id="error-box" class="hidden mt-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg relative" role="alert">
+            <strong class="font-bold">Error:</strong>
+            <span id="error-message" class="block sm:inline">Something went wrong.</span>
+        </div>
+
     </div>
 
-    <button id="processButton" disabled>Process Video</button>
-    <button id="downloadButton" style="display: none;">Download Processed Video</button>
-    <div id="status">Please select a video.</div>
+    <script>
+        // Get references to all the necessary DOM elements
+        const videoUpload = document.getElementById('video-upload');
+        const mainVideo = document.getElementById('main-video');
+        const fileNameDisplay = document.getElementById('file-name');
+        
+        const firstFrameCanvas = document.getElementById('first-frame-canvas');
+        const lastFrameCanvas = document.getElementById('last-frame-canvas');
+        
+        const firstFrameImage = document.getElementById('first-frame-image');
+        const lastFrameImage = document.getElementById('last-frame-image');
+        
+        const downloadFirstLink = document.getElementById('download-first');
+        const downloadLastLink = document.getElementById('download-last');
+        
+        const outputSection = document.getElementById('output-section');
+        const loader = document.getElementById('loader');
+        const errorBox = document.getElementById('error-box');
+        const errorMessage = document.getElementById('error-message');
 
-    <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady()"></script>
-    <script src="script.js"></script>
+        // State flag to manage the seek operations
+        let isFirstFrameExtracted = false;
+
+        // Listen for a file to be selected
+        videoUpload.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            if (!file.type.startsWith('video/')) {
+                showError('Please select a valid video file.');
+                return;
+            }
+
+            // Reset UI and state for the new file
+            hideError();
+            outputSection.classList.add('hidden');
+            loader.classList.remove('hidden');
+            fileNameDisplay.textContent = file.name;
+            isFirstFrameExtracted = false; // Reset flag for new video
+
+            const videoURL = URL.createObjectURL(file);
+            mainVideo.src = videoURL;
+        });
+
+        // This event fires when the video's metadata has loaded
+        mainVideo.addEventListener('loadedmetadata', () => {
+            // Set canvas dimensions to match the video
+            firstFrameCanvas.width = mainVideo.videoWidth;
+            firstFrameCanvas.height = mainVideo.videoHeight;
+            lastFrameCanvas.width = mainVideo.videoWidth;
+            lastFrameCanvas.height = mainVideo.videoHeight;
+
+            // **FIX:** Instead of capturing immediately, seek to a point just after
+            // the beginning to ensure the first frame is not blank.
+            mainVideo.currentTime = 0.01;
+        });
+
+        // This event fires when a seek operation is complete
+        mainVideo.addEventListener('seeked', () => {
+            // This handler now manages both first and last frame extraction
+            if (!isFirstFrameExtracted) {
+                // This is the first seek (to the beginning)
+                const firstFrameCtx = firstFrameCanvas.getContext('2d');
+                firstFrameCtx.drawImage(mainVideo, 0, 0, mainVideo.videoWidth, mainVideo.videoHeight);
+                
+                const firstFrameDataUrl = firstFrameCanvas.toDataURL('image/png');
+                firstFrameImage.src = firstFrameDataUrl;
+                downloadFirstLink.href = firstFrameDataUrl;
+                
+                // Set the flag to true so we know the first frame is done
+                isFirstFrameExtracted = true;
+                
+                // Now, trigger the seek to the end for the last frame
+                // Seek slightly before the end to avoid potential black frames
+                mainVideo.currentTime = mainVideo.duration - 0.01;
+            } else {
+                // This is the second seek (to the end)
+                const lastFrameCtx = lastFrameCanvas.getContext('2d');
+                lastFrameCtx.drawImage(mainVideo, 0, 0, mainVideo.videoWidth, mainVideo.videoHeight);
+
+                const lastFrameDataUrl = lastFrameCanvas.toDataURL('image/png');
+                lastFrameImage.src = lastFrameDataUrl;
+                downloadLastLink.href = lastFrameDataUrl;
+
+                // All done, show the output and hide the loader
+                loader.classList.add('hidden');
+                outputSection.classList.remove('hidden');
+            }
+        });
+
+        // Handle potential errors during video loading
+        mainVideo.addEventListener('error', () => {
+            showError('Could not load or process the video. The file might be corrupted or in an unsupported format.');
+            loader.classList.add('hidden');
+        });
+
+        // Helper function to show an error message
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorBox.classList.remove('hidden');
+        }
+
+        // Helper function to hide the error message
+        function hideError() {
+            errorBox.classList.add('hidden');
+        }
+
+    </script>
 </body>
 </html>
